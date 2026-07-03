@@ -257,6 +257,45 @@ def run_interactive_chat(args: list):
                     print(f"\033[1;33m[sys] Generation statistics {'enabled' if show_stats else 'disabled'}.\033[0m\n")
                     continue
 
+                # --- LIVE BACKEND / MODEL / EFFORT SWITCHING ---
+                if query.split()[0] in ("/agent", "/agents", "/backend"):
+                    arg = query.split(None, 1)[1].strip().lower() if " " in query else ""
+                    valid = ("claude", "codex", "deepseek", "openrouter", "gemini", "local", "auto")
+                    if arg in valid:
+                        if arg == "auto":
+                            os.environ.pop("AI_BACKEND", None)
+                        else:
+                            os.environ["AI_BACKEND"] = arg
+                        print(f"\033[1;32m[sys] Agent backend switched to: {arg}\033[0m\n")
+                    else:
+                        cur = os.environ.get("AI_BACKEND") or "auto (cascade)"
+                        print(f"\033[1;33m[sys] Current backend: {cur}\033[0m")
+                        print(f"\033[2m[sys] Usage: /agent <{'|'.join(valid)}>  (local = your llama.cpp model, e.g. Hermes)\033[0m\n")
+                    continue
+
+                if query.split()[0] == "/model":
+                    model_vars = {"claude": "CLAUDE_MODEL", "codex": "CODEX_MODEL", "deepseek": "DEEPSEEK_MODEL", "openrouter": "OPENROUTER_MODEL", "gemini": "CLOUD_MODEL"}
+                    backend_now = os.environ.get("AI_BACKEND", "").strip().lower()
+                    var = model_vars.get(backend_now)
+                    arg = query.split(None, 1)[1].strip() if " " in query else ""
+                    if not var:
+                        print(f"\033[1;33m[sys] Backend '{backend_now or 'auto'}' has no switchable model (local is fixed by llama-server). Pick one first: /agent claude\033[0m\n")
+                    elif arg:
+                        os.environ[var] = arg
+                        print(f"\033[1;32m[sys] {backend_now} model set to: {arg}\033[0m\n")
+                    else:
+                        print(f"\033[1;33m[sys] Current {backend_now} model: {os.environ.get(var) or '(default)'} — change with /model <name>\033[0m\n")
+                    continue
+
+                if query.split()[0] == "/effort":
+                    arg = query.split(None, 1)[1].strip().lower() if " " in query else ""
+                    if arg in ("minimal", "low", "medium", "high"):
+                        os.environ["CODEX_EFFORT"] = arg
+                        print(f"\033[1;32m[sys] Codex reasoning effort set to: {arg}\033[0m\n")
+                    else:
+                        print(f"\033[1;33m[sys] Current codex effort: {os.environ.get('CODEX_EFFORT') or '(default)'} — usage: /effort <minimal|low|medium|high>\033[0m\n")
+                    continue
+
                 # --- NATIVE FULL SESSION CLEAR ---
                 if query.lower() in ("/clear", "/reset"):
                     # 1. Clear local Python history array and pre-fill the startup greeting to prevent loops

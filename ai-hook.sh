@@ -9,15 +9,12 @@ _AI_SCRIPT_PATH="$_AI_DIR/ai-agent.py"
 
 command -v python3 >/dev/null 2>&1 && _AI_PYTHON_BIN="python3" || _AI_PYTHON_BIN="python"
 
-# Load API keys / backend config from .env (gitignored; see .env.example)
-if [[ -f "$_AI_DIR/.env" ]]; then
-    set -a
-    source "$_AI_DIR/.env"
-    set +a
-fi
+# NOTE: .env is loaded by ai-agent.py itself on every run (fresh each time),
+# not exported here — so edits to .env apply to the very next `ai` command.
 
 # Quick backend switches
 alias aic='AI_BACKEND=claude ai'
+alias aix='AI_BACKEND=codex ai'
 alias aid='AI_BACKEND=deepseek ai'
 alias aio='AI_BACKEND=openrouter ai'
 alias aig='AI_BACKEND=gemini ai'

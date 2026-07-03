@@ -127,6 +127,8 @@ def draw_session_box(
     okey = os.environ.get("OPENROUTER_API_KEY")
     if backend == "claude":
         model_name = f"claude ({os.environ.get('CLAUDE_MODEL', 'sonnet')})"
+    elif backend == "codex":
+        model_name = f"codex ({os.environ.get('CODEX_MODEL', 'default')})"
     elif backend == "deepseek" and dkey:
         model_name = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
     elif backend == "openrouter" and okey:

@@ -2,8 +2,9 @@
 
 <p align="center">
   A zero-daemon, multi-backend AI agent for your terminal.<br>
-  Chat with <b>Claude</b> (your claude.ai login — no API key), <b>DeepSeek</b>, <b>OpenRouter</b>, <b>Gemini</b>,
-  or any <b>local GGUF model</b> (Hermes, Qwen, Llama, …) — with automatic fallback between them.
+  Chat with <b>Claude</b> (your claude.ai login), <b>Codex</b> (your ChatGPT login), <b>DeepSeek</b>,
+  <b>OpenRouter</b>, <b>Gemini</b>, or any <b>local GGUF model</b> (Hermes, Qwen, Llama, …) —
+  with automatic fallback between them.
 </p>
 
 <p align="center">
@@ -14,9 +15,9 @@
 
 ## Features
 
-- **5 interchangeable backends** — switch with a single env var, no restart, no config file
+- **6 interchangeable backends** — switch with a single env var, no restart, no config file
 - **Automatic fallback cascade** — if your primary backend is down or rate-limited, the next one answers
-- **Claude via your subscription** — uses the official `claude` CLI login, so no Anthropic API key is needed
+- **Claude & Codex via your subscriptions** — uses the official `claude` / `codex` CLI logins, so no API keys are needed
 - **Unlimited local agents** — every folder can become a persistent, codebase-aware agent with its own memory, history, and personality (skill)
 - **Zero idle cost** — no daemon; nothing runs until you type `ai`
 - **Persistent memory** — per-workspace SQLite session history + long-term fact memory (TPM)
@@ -32,7 +33,8 @@
 | **macOS or Linux** | zsh and bash are both supported |
 | **[llama.cpp](https://github.com/ggml-org/llama.cpp)** | *Optional* — only for running local models (`brew install llama.cpp` / your package manager) |
 | **[Claude Code CLI](https://claude.com/claude-code)** | *Optional* — only for the Claude backend (`brew install claude` or `npm i -g @anthropic-ai/claude-code`, then `claude login`) |
-| **At least one backend** | Any of: Claude login, DeepSeek key, OpenRouter key, Gemini key, or a local model |
+| **[OpenAI Codex CLI](https://github.com/openai/codex)** | *Optional* — only for the Codex backend (`brew install codex` or `npm i -g @openai/codex`, then `codex login`) |
+| **At least one backend** | Any of: Claude login, ChatGPT/Codex login, DeepSeek key, OpenRouter key, Gemini key, or a local model |
 
 ---
 
@@ -77,11 +79,15 @@ nano ~/.config/local-ai/.env      # or open it in any editor
 ```
 
 ```dotenv
-# Primary backend: claude | deepseek | openrouter | gemini | local
+# Primary backend: claude | codex | deepseek | openrouter | gemini | local
 AI_BACKEND=claude
 
 # Claude — NO API key needed, uses your claude.ai login via the claude CLI
 CLAUDE_MODEL=sonnet                              # sonnet | haiku | opus
+
+# Codex — NO API key needed, uses your ChatGPT login via the codex CLI
+# CODEX_MODEL=gpt-5.2-codex                      # omit to use your codex default
+# CODEX_EFFORT=medium                            # minimal | low | medium | high
 
 # DeepSeek (direct API) — key from platform.deepseek.com/api_keys
 DEEPSEEK_API_KEY=sk-your-key-here
@@ -89,7 +95,7 @@ DEEPSEEK_MODEL=deepseek-v4-flash
 
 # OpenRouter — one key, hundreds of models — openrouter.ai/keys
 OPENROUTER_API_KEY=sk-or-v1-your-key-here
-OPENROUTER_MODEL=deepseek/deepseek-v4-flash:free
+OPENROUTER_MODEL=deepseek/deepseek-v4-flash
 
 # Gemini — optional; leave commented out if you don't use it
 # GEMINI_API_KEY=AIza-your-key-here
@@ -97,19 +103,41 @@ OPENROUTER_MODEL=deepseek/deepseek-v4-flash:free
 
 **Every line is optional** — leave anything commented out and the agent skips
 that backend in the fallback chain. `.env` is gitignored, so your keys can
-never be committed or published. The file is read both by the shell hook and
-by the Python agent itself, so it works no matter how the agent is launched.
+never be committed or published. The agent reads `.env` fresh on every run,
+so edits apply to your very next `ai` command — no terminal restart needed.
 (Power users: plain environment variables also work and take priority over `.env`.)
 
 These aliases are available out of the box for hopping between backends:
 
 | Alias | Backend |
 | :--- | :--- |
-| `aic` | Claude (account login) |
+| `aic` | Claude (claude.ai account login) |
+| `aix` | Codex (ChatGPT account login) |
 | `aid` | DeepSeek direct API |
 | `aio` | OpenRouter |
 | `aig` | Gemini |
 | `ail` | Local model (llama.cpp) |
+
+### Using your Claude / ChatGPT subscription (no API keys)
+
+The `claude` and `codex` backends don't bill per token — they ride on the
+subscriptions you already pay for:
+
+```bash
+# Claude (Pro/Max plan)
+brew install claude        # or: npm i -g @anthropic-ai/claude-code
+claude login               # opens a browser, sign in once
+# then in .env:  AI_BACKEND=claude  and pick CLAUDE_MODEL=sonnet|haiku|opus
+
+# Codex (ChatGPT Plus/Pro plan)
+brew install codex         # or: npm i -g @openai/codex
+codex login                # opens a browser, sign in once
+# then in .env:  AI_BACKEND=codex   and optionally CODEX_MODEL / CODEX_EFFORT
+```
+
+Both run in chat-only mode inside the agent (file/shell tools disabled), and
+if you hit your plan's usage limit, the cascade falls through to your other
+configured backends automatically.
 
 ### How routing works
 
@@ -205,6 +233,9 @@ with `/skill <name>`.
 
 | Command | Description |
 | :--- | :--- |
+| `/agent <name>` | Switch backend mid-chat: `claude`, `codex`, `deepseek`, `openrouter`, `gemini`, `local` (your llama.cpp model), or `auto` |
+| `/model <name>` | Change the current backend's model (e.g. `/model haiku`, `/model deepseek-v4-pro`) |
+| `/effort <level>` | Codex reasoning effort: `minimal` `low` `medium` `high` |
 | `/skill <name>` (or `/s`) | Load a skill on the fly |
 | `view file <path>` | Read a local file into context |
 | `-save <tag>` / `-load` | Snapshot / roll back the conversation (SQLite) |

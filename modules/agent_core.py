@@ -241,16 +241,90 @@ def stream_claude(messages, prefix, spinner, show_stats: bool = True):
         return None
 
 
+def stream_codex(messages, prefix, spinner, show_stats: bool = True):
+    """Runs a chat turn through the OpenAI Codex CLI, which authenticates with
+    your ChatGPT account login (no API key needed). Non-streaming: the answer
+    is printed once complete."""
+    import shutil
+    import subprocess
+    import tempfile
+    codex_bin = shutil.which("codex")
+    if not codex_bin:
+        return None
+
+    system_prompt = ""
+    convo = messages
+    if messages and messages[0]["role"] == "system":
+        system_prompt = messages[0]["content"]
+        convo = messages[1:]
+    if not convo:
+        return None
+
+    parts = []
+    if system_prompt:
+        parts.append(f"### Instructions:\n{system_prompt}")
+    history = "\n\n".join(
+        ("User: " if m["role"] == "user" else "Assistant: ") + m["content"]
+        for m in convo[:-1]
+    )
+    if history:
+        parts.append(f"### Prior conversation:\n{history}")
+    parts.append(f"### Current message:\n{convo[-1]['content']}")
+    prompt = "\n\n".join(parts)
+
+    tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    tmp.close()
+    cmd = [
+        codex_bin, "exec",
+        "--sandbox", "read-only", "--skip-git-repo-check",
+        "--output-last-message", tmp.name,
+    ]
+    model = os.environ.get("CODEX_MODEL")
+    if model:
+        cmd += ["-m", model]
+    effort = os.environ.get("CODEX_EFFORT")
+    if effort:
+        cmd += ["-c", f'model_reasoning_effort="{effort}"']
+    cmd.append(prompt)
+
+    try:
+        spinner.start()
+        subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+        spinner.stop()
+        with open(tmp.name, "r", encoding="utf-8") as f:
+            ans = f.read().strip()
+        if not ans:
+            return None
+        if sys.stdout.isatty():
+            sys.stdout.write(f"\r\x1b[2K\r\033[1;32m{prefix}\033[0m ")
+        print(ans)
+        return ans
+    except KeyboardInterrupt:
+        spinner.stop()
+        sys.stderr.write("\n\r\x1b[2K\r[sys] Interrupted.\n")
+        # Non-None so the caller does not cascade to another backend mid-turn
+        return ""
+    except Exception:
+        spinner.stop()
+        return None
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except Exception:
+            pass
+
+
 def stream_response(messages: list, prefix: str = "AI: ", cfg_dir: str = "", show_stats: bool = False) -> str or None:
     acc = []
     spinner = ui.InlineSpinner()
     try:
         backend = os.environ.get("AI_BACKEND", "").strip().lower()
-        if backend == "claude":
-            ans = stream_claude(messages, prefix, spinner, show_stats)
+        if backend in ("claude", "codex"):
+            engine = stream_claude if backend == "claude" else stream_codex
+            ans = engine(messages, prefix, spinner, show_stats)
             if ans is not None:
                 return ans
-            sys.stderr.write("\033[90m[sys] claude backend failed, falling back.\033[0m\n")
+            sys.stderr.write(f"\033[90m[sys] {backend} backend failed, falling back.\033[0m\n")
 
         gkey = os.environ.get("GEMINI_API_KEY")
         dkey = os.environ.get("DEEPSEEK_API_KEY")
