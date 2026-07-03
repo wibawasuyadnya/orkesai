@@ -314,11 +314,56 @@ def stream_codex(messages, prefix, spinner, show_stats: bool = True):
             pass
 
 
+def ensure_local_server() -> bool:
+    """Auto-start llama-server when the local backend is chosen but :8080 is down.
+
+    Launches start-hermes.sh detached (it keeps running after the agent exits,
+    so follow-up questions are instant) and waits for /health to report ready.
+    llama-server answers 503 while the model is still loading, 200 once ready.
+    """
+    def up():
+        try:
+            with urlreq.urlopen("http://localhost:8080/health", timeout=2) as r:
+                return r.status == 200
+        except Exception:
+            return False
+
+    if up():
+        return True
+
+    cfg_dir = os.path.expanduser("~/.config/local-ai")
+    script = os.path.join(cfg_dir, "start-hermes.sh")
+    if not os.path.exists(script):
+        sys.stderr.write("\033[1;33m[sys] llama-server is not running and start-hermes.sh was not found — start it manually.\033[0m\n")
+        return False
+
+    import subprocess
+    log_path = os.path.join(cfg_dir, ".llama-server.log")
+    sys.stderr.write(f"\033[90m[sys] Starting local llama-server in the background (log: {log_path}). Very first run downloads ~9 GB.\033[0m\n")
+    with open(log_path, "a", encoding="utf-8") as log:
+        subprocess.Popen(["/bin/bash", script], stdout=log, stderr=log, start_new_session=True)
+
+    deadline = time.time() + 900  # model load takes ~a minute; first-time download much longer
+    waited = 0
+    while time.time() < deadline:
+        if up():
+            sys.stderr.write("\033[90m[sys] llama-server ready on :8080.\033[0m\n")
+            return True
+        time.sleep(2)
+        waited += 2
+        if waited % 30 == 0:
+            sys.stderr.write(f"\033[90m[sys] still loading model... ({waited}s)\033[0m\n")
+    sys.stderr.write(f"\033[1;33m[sys] llama-server did not become ready — check {log_path}\033[0m\n")
+    return False
+
+
 def stream_response(messages: list, prefix: str = "AI: ", cfg_dir: str = "", show_stats: bool = False) -> str or None:
     acc = []
     spinner = ui.InlineSpinner()
     try:
         backend = os.environ.get("AI_BACKEND", "").strip().lower()
+        if backend == "local":
+            ensure_local_server()
         if backend in ("claude", "codex"):
             engine = stream_claude if backend == "claude" else stream_codex
             ans = engine(messages, prefix, spinner, show_stats)
