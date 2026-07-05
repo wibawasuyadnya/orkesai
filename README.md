@@ -18,6 +18,9 @@
 - **5 interchangeable backends** — switch with a single env var, no restart, no config file
 - **Automatic fallback cascade** — if your primary backend is down or rate-limited, the next one answers
 - **Claude & Codex via your subscriptions** — uses the official `claude` / `codex` CLI logins, so no API keys are needed
+- **A team of role agents** — `@debug`, `@review`, … each with its own model, backend, prompt, and persistent sessions; full CRUD from the terminal (`/team add|edit|rm`)
+- **MCP tools & skills per agent** — attach MCP servers (`/mcp add`) and prompt skills (like the bundled `caveman` token-saver) to any team agent
+- **Opencode-style terminal UI** — composer pinned to the bottom, shaded user-message blocks, per-turn model/token/cost statusline — in your plain terminal, no TUI
 - **Unlimited local agents** — every folder can become a persistent, codebase-aware agent with its own memory, history, and personality (skill)
 - **Zero idle cost** — no daemon; nothing runs until you type `ai`
 - **Persistent memory** — per-workspace SQLite session history + long-term fact memory (TPM)
@@ -229,7 +232,7 @@ persistent session, shared with the web GUI:
 ai @research "is bun production ready?"    # one-shot from the shell
 ```
 
-Each reply ends with a dim usage line (`↓tokens ↑tokens · $cost · model`).
+Each reply ends with a dim usage line (`▪ model · ↓tokens ↑tokens · $cost`).
 
 ### Customizing the team
 
@@ -279,37 +282,39 @@ change applies to the very next message (`/team` re-reads it live). Each entry:
   the CLI installed on whatever machine runs the engine — so on the VPS
   Docker stack, keep team agents on `openrouter`.
 
-## Multi-agent app (web GUI + Electron)
+## Multi-agent API server (+ local GUI)
 
-On top of the terminal agent there's a Conduit-style multi-agent workspace:
-role agents defined in `agents.json` (Debugger and Reviewer on
-`deepseek/deepseek-v4-pro`, Researcher and General on
-`deepseek/deepseek-v4-flash`, all via OpenRouter), with sessions persisted as
-JSON under `.sessions/`. Both frontends share one engine
-(`modules/agent_service.py`):
-
-| Piece | Where | Run with |
-| :--- | :--- | :--- |
-| API server (REST + SSE, stdlib-only, port 8765) | `server/server.py` | `ais` |
-| Web GUI (Next.js + TypeScript, port 3000) | `gui/` | `cd gui && npm run dev` |
-| Desktop app (Electron, spawns the server itself) | `gui/electron/` | `cd gui && npm run app` |
-
-One-time setup:
+On top of the terminal agent there's a multi-agent engine
+(`modules/agent_service.py`): role agents from `agents.json`, sessions
+persisted as JSON under `.sessions/`, exposed by a stdlib-only REST + SSE
+server:
 
 ```bash
-# npm 11 blocks postinstall scripts, so approve Electron's
-cd gui && npm install && npm approve-scripts electron && npm rebuild electron
+ais        # serves http://127.0.0.1:8765
 ```
 
-The web GUI and Electron app talk to the server on `127.0.0.1:8765` —
-Electron starts it automatically if it isn't running. Edit `agents.json` to
-add roles, change models, or rewrite system prompts; changes apply on the
-next session.
+| Endpoint | What |
+| :--- | :--- |
+| `GET /api/agents` | The team roster (from `agents.json`) |
+| `GET /api/sessions[?agent=]` · `POST /api/sessions` | List / create sessions |
+| `POST /api/chat` `{session_id, message}` | Streamed reply (SSE), tools and cost included |
 
-**Hosting it on a VPS:** the whole stack ships as Docker containers behind a
-password-protected Caddy proxy, so all your devices share the same sessions —
-see [deploy/README.md](deploy/README.md). The Mac Electron app can point at
-the VPS with `AI_GUI_URL=http://<vps> AI_GUI_USER=admin AI_GUI_PASS=… npm run electron`.
+The terminal `@role` messages and this API share the same sessions, so any
+frontend you build sees the same conversations.
+
+> **Note:** a Next.js + Electron desktop GUI exists for this API but is kept
+> out of the published repo (local `gui/` folder, gitignored). If you're
+> deploying the Docker stack from `deploy/`, copy that folder up alongside
+> the repo — everything else about the deploy is self-contained.
+
+**Hosting it on a VPS:** the stack ships as Docker containers (API + GUI
+behind a password-protected Caddy proxy), so all your devices share the same
+sessions — see [deploy/README.md](deploy/README.md). Sync the local-only GUI
+folder to the VPS with:
+
+```bash
+rsync -a --exclude node_modules --exclude .next gui/ user@vps:~/local-ai/gui/
+```
 
 ---
 
@@ -332,7 +337,7 @@ the VPS with `AI_GUI_URL=http://<vps> AI_GUI_USER=admin AI_GUI_PASS=… npm run 
 | `@<role> <msg>` | Message a team agent (`@debug`, `@review`, `@research`, `@chat`); `@<role> /new` starts a fresh session |
 | `/team` | List the team agents, their models, and session counts |
 | `/team add [id]` | Create a team agent (wizard asks name, icon, backend, model, prompt) |
-| `/team edit <id> <field> <value>` | Change `name`, `icon`, `model`, `backend`, or `prompt` |
+| `/team edit <id> <field> <value>` | Change `name`, `icon`, `model`, `backend`, `prompt`, `skills`, or `mcp` |
 | `/team rm <id>` | Delete a team agent (asks about its sessions too) |
 | `/team show <id>` | Show one agent's full config |
 | `/agent <name>` | Switch backend mid-chat: `claude`, `codex`, `openrouter`, `gemini`, `local` (your llama.cpp model), or `auto` |

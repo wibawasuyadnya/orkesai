@@ -24,6 +24,14 @@ cd local-ai/deploy
 cp .env.example .env
 ```
 
+The `gui/` app is not in the git repo (kept local-only) — copy it up from
+your machine before building:
+
+```bash
+# run on your Mac
+rsync -a --exclude node_modules --exclude .next gui/ user@vps:~/local-ai/gui/
+```
+
 Edit `deploy/.env`:
 
 - `OPENROUTER_API_KEY` — your key
