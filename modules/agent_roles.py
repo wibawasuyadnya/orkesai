@@ -36,8 +36,37 @@ def _latest_session(agent_id: str) -> dict:
     return svc.create_session(agent_id)
 
 
+def _last_exchange(agent_id: str):
+    """(agent, question, answer) from the agent's most recent completed turn."""
+    for meta in svc.list_sessions(agent_id):
+        s = svc.get_session(agent_id, meta["id"])
+        if not s:
+            continue
+        msgs = s["messages"]
+        for i in range(len(msgs) - 1, -1, -1):
+            if msgs[i]["role"] == "assistant":
+                q = msgs[i - 1]["content"] if i > 0 and msgs[i - 1]["role"] == "user" else ""
+                return svc.get_agent(agent_id), q, msgs[i]["content"]
+    return None
+
+
+def _last_exchange_any(exclude: str = ""):
+    """The newest completed turn across the whole team (excluding one agent)."""
+    best, best_t = None, -1
+    for a in svc.list_agents():
+        if a["id"] == exclude:
+            continue
+        metas = svc.list_sessions(a["id"])
+        if not metas or metas[0]["updated"] <= best_t:
+            continue
+        exch = _last_exchange(a["id"])
+        if exch:
+            best, best_t = exch, metas[0]["updated"]
+    return best
+
+
 def team_summary() -> str:
-    lines = ["\033[1mteam\033[0m — @<name> <msg> · @<name> /new · /team add|edit|rm|show"]
+    lines = ["\033[1mteam\033[0m — @<name> <msg> · @<name> /new · @<name> /last [from] · /team add|edit|rm|show"]
     for a in svc.list_agents():
         count = len(svc.list_sessions(a["id"]))
         backend = a.get("backend", "openrouter")
@@ -251,6 +280,30 @@ def dispatch(query: str) -> bool:
         svc.create_session(role)
         print(f"\033[1;32m[team] fresh session for {agent['name']}.\033[0m\n")
         return True
+
+    # Handoff: `@review /last [role] [instructions]` — feed a teammate's last
+    # answer to this agent so the user never has to re-paste between agents.
+    if message == "/last" or message.startswith("/last "):
+        rest = message[5:].strip()
+        first, _, extra = rest.partition(" ")
+        src = first.lstrip("@").lower()
+        if src and src in agents:
+            exch = _last_exchange(src)
+        else:  # no source role given — take the team's most recent answer
+            exch, extra = _last_exchange_any(exclude=role), rest
+        if not exch:
+            print(f"\033[1;33m[team] nothing to hand off — no teammate has answered yet\033[0m\n")
+            return True
+        src_agent, q, a = exch
+        if src_agent["id"] == role:
+            print(f"\033[1;33m[team] that's @{role}'s own answer — pick another source\033[0m\n")
+            return True
+        task = extra.strip() or "Give your take on the above, acting per your role."
+        message = (f"Handoff from teammate {src_agent['name']} (@{src_agent['id']}).\n\n"
+                   f"### Question they were asked:\n{q[:1500]}\n\n"
+                   f"### Their answer:\n{a[:8000]}\n\n"
+                   f"### Your task:\n{task}")
+        print(f"\033[2m[team] handing @{src_agent['id']}'s last answer to {agent['name']}…\033[0m")
 
     session = _latest_session(role)
     print(f"\033[{color}m{agent['name']}:\033[0m ", end="", flush=True)

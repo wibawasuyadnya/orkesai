@@ -229,6 +229,11 @@ persistent session, shared with the web GUI:
 ❯ @debug /new                # start a fresh Debugger session
 ❯ /team                      # roster, models, session counts
 
+# Handoffs — no re-pasting between agents:
+❯ @review /last debug        # Reviewer gets the Debugger's last answer
+❯ @review /last debug check the fix for race conditions   # …with instructions
+❯ @chat /last                # most recent answer from anyone on the team
+
 ai @research "is bun production ready?"    # one-shot from the shell
 ```
 
@@ -335,6 +340,7 @@ rsync -a --exclude node_modules --exclude .next gui/ user@vps:~/local-ai/gui/
 | Command | Description |
 | :--- | :--- |
 | `@<role> <msg>` | Message a team agent (`@debug`, `@review`, `@research`, `@chat`); `@<role> /new` starts a fresh session |
+| `@<role> /last [from] [note]` | Handoff: send a teammate's last answer to this agent (`@review /last debug find bugs`) |
 | `/team` | List the team agents, their models, and session counts |
 | `/team add [id]` | Create a team agent (wizard asks name, icon, backend, model, prompt) |
 | `/team edit <id> <field> <value>` | Change `name`, `icon`, `model`, `backend`, `prompt`, `skills`, or `mcp` |

@@ -196,6 +196,7 @@ HELP_TEXT = """\033[1mcommands\033[0m
   \033[1;36m/e\033[0m /d                \033[2mspellchecker on / off\033[0m
 \033[1mteam\033[0m \033[2m(agents.json)\033[0m
   \033[1;36m@<role>\033[0m <msg>        \033[2mmessage a team agent · @<role> /new = fresh session\033[0m
+  \033[1;36m@<role> /last\033[0m [from] [note]  \033[2mhand a teammate's last answer to this agent\033[0m
   \033[1;36m/team\033[0m               \033[2mroster, models, session counts\033[0m
   \033[1;36m/team add\033[0m [id]      \033[2mcreate an agent (wizard)\033[0m
   \033[1;36m/team edit\033[0m <id> <name|icon|model|backend|prompt|skills|mcp> <value>
