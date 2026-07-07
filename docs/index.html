@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DotAI — local multi-agent AI for your terminal</title>
+<meta name="description" content="DotAI runs a team of AI agents on your own machine — Claude, Codex, OpenRouter, or a fully local llama.cpp model. Terminal and desktop app.">
+<link rel="icon" href="favicon-32x32.png">
+<style>
+  :root {
+    --bg: #16181d; --panel: #1d2026; --panel-2: #22262d; --line: #2c313a;
+    --text: #e8eaed; --dim: #9aa2ad; --accent: #7fb4d9; --green: #9ece6a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+  }
+  main { width: min(720px, 92vw); padding: 64px 0 40px; }
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero img { width: 96px; height: 96px; border-radius: 22px; }
+  .hero h1 { font-size: 2.1rem; margin: 18px 0 8px; letter-spacing: -0.02em; }
+  .hero h1 .dot { color: var(--accent); }
+  .hero p { color: var(--dim); max-width: 520px; margin: 0 auto; }
+  h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em;
+       color: var(--dim); margin: 40px 0 14px; }
+  .cmd {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px;
+  }
+  .cmd .label { font-size: 0.72rem; color: var(--dim); min-width: 92px;
+                text-transform: uppercase; letter-spacing: 0.06em; }
+  .cmd code {
+    flex: 1; font: 0.86rem/1.5 "SF Mono", ui-monospace, Menlo, monospace;
+    color: var(--green); overflow-x: auto; white-space: nowrap; scrollbar-width: none;
+  }
+  .cmd button {
+    background: var(--panel-2); color: var(--dim); border: 1px solid var(--line);
+    border-radius: 7px; padding: 6px 12px; font-size: 0.78rem; cursor: pointer;
+  }
+  .cmd button:hover { color: var(--text); border-color: var(--accent); }
+  .apps { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    flex: 1; min-width: 220px; display: flex; align-items: center; gap: 14px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; text-decoration: none; color: var(--text); transition: border-color .15s;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn .icon { font-size: 1.7rem; }
+  .btn .t { font-weight: 600; }
+  .btn .s { display: block; font-size: 0.78rem; color: var(--dim); font-weight: 400; }
+  .btn.soon { opacity: 0.55; }
+  ul.feat { list-style: none; color: var(--dim); font-size: 0.92rem; }
+  ul.feat li { padding: 5px 0 5px 22px; position: relative; }
+  ul.feat li::before { content: "▪"; color: var(--accent); position: absolute; left: 4px; }
+  ul.feat b { color: var(--text); font-weight: 600; }
+  .note { font-size: 0.82rem; color: var(--dim); margin-top: 10px; }
+  .note a, footer a { color: var(--accent); text-decoration: none; }
+  footer { color: var(--dim); font-size: 0.8rem; padding: 28px 0 40px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <img src="dotai-icon.png" alt="DotAI">
+    <h1>dot<span class="dot">ai</span></h1>
+    <p>A team of AI agents living in your terminal — Claude, Codex, OpenRouter,
+       or a fully local llama.cpp model. Your machine, your keys, your data.
+       Zero idle cost, nothing in the cloud unless you choose it.</p>
+  </div>
+
+  <h2>Install the terminal version</h2>
+  <div class="cmd">
+    <span class="label">curl</span>
+    <code id="c1">curl -fsSL https://raw.githubusercontent.com/wibawasuyadnya/local-ai-main/main/install.sh | bash</code>
+    <button onclick="cp('c1', this)">copy</button>
+  </div>
+  <div class="cmd">
+    <span class="label">npm</span>
+    <code id="c2">npm install -g wibawasuyadnya/local-ai-main</code>
+    <button onclick="cp('c2', this)">copy</button>
+  </div>
+  <div class="cmd">
+    <span class="label">homebrew</span>
+    <code id="c3">brew tap wibawasuyadnya/dotai &amp;&amp; brew install --HEAD dotai</code>
+    <button onclick="cp('c3', this)">copy</button>
+  </div>
+  <p class="note">Then open a new terminal and type <b>ai</b>. Installs to
+     <code>~/.config/local-ai</code> with your <em>own</em> <code>.env</code> and settings —
+     add an OpenRouter key, log into the Claude/Codex CLIs, or use neither:
+     the local Hermes model downloads on first use (~1&nbsp;GB) and runs on
+     <code>localhost:8080</code>.</p>
+
+  <h2>Install the desktop app</h2>
+  <div class="apps">
+    <a class="btn" href="https://github.com/wibawasuyadnya/local-ai-main/releases/latest/download/DotAI-arm64.dmg">
+      <span class="icon"></span>
+      <span><span class="t">Download for macOS</span>
+      <span class="s">.dmg · Apple Silicon — drag to Applications</span></span>
+    </a>
+    <a class="btn soon" href="https://github.com/wibawasuyadnya/local-ai-main/releases/latest">
+      <span class="icon">⊞</span>
+      <span><span class="t">Download for Windows</span>
+      <span class="s">.exe · coming soon</span></span>
+    </a>
+  </div>
+  <p class="note">Intel Mac and all versions on the
+     <a href="https://github.com/wibawasuyadnya/local-ai-main/releases/latest">releases page</a>.
+     The app is unsigned — first launch: right-click&nbsp;→&nbsp;Open.
+     It needs the terminal version installed too (it's the brain).</p>
+
+  <h2>What you get</h2>
+  <ul class="feat">
+    <li><b>@team of agents</b> — debug, review, research roles from agents.json, orchestrated in one chat</li>
+    <li><b>Any backend per agent</b> — Claude Code, Codex, OpenRouter, or local llama.cpp; automatic fallback</li>
+    <li><b>Acts, with your approval</b> — runs commands and edits files anywhere, every action confirmed y/n with a diff</li>
+    <li><b>Persistent memory</b> — per-project history and long-term facts, in SQLite on your disk</li>
+    <li><b>MCP servers &amp; skills</b> — attach tools and prompt-skills to any agent</li>
+    <li><b>Spend ledger</b> — per-model token and cost tracking, live balance in the statusline</li>
+  </ul>
+
+  <footer>
+    <a href="https://github.com/wibawasuyadnya/local-ai-main">GitHub</a> ·
+    MIT license · everything runs on your device
+  </footer>
+</main>
+<script>
+function cp(id, btn) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent.trim());
+  btn.textContent = "copied"; setTimeout(() => btn.textContent = "copy", 1200);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "name": "dotai-agent",
+  "version": "0.9.0",
+  "description": "DotAI — local multi-agent AI for your terminal (Claude, Codex, OpenRouter, local llama.cpp)",
+  "bin": {
+    "dotai": "bin/dotai"
+  },
+  "files": [
+    "bin/",
+    "modules/",
+    "server/",
+    "skills/",
+    "tools/",
+    "ai-agent.py",
+    "ai-context.md",
+    "ai-hook.sh",
+    "install.sh",
+    ".env.example",
+    "agents.json",
+    "start-hermes.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wibawasuyadnya/local-ai-main.git"
+  },
+  "homepage": "https://wibawasuyadnya.github.io/local-ai-main",
+  "license": "MIT",
+  "os": [
+    "darwin",
+    "linux"
+  ]
+}

@@ -45,30 +45,36 @@
 
 ## Installation
 
+One line (installs to `~/.config/local-ai`, hooks your shell, creates your own `.env`):
+
 ```bash
-# 1. Clone to the path the agent expects
-git clone https://github.com/suyadnya/local-ai.git ~/.config/local-ai
-
-#    …or clone anywhere and symlink:
-# git clone https://github.com/suyadnya/local-ai.git ~/Documents/local-ai
-# ln -s ~/Documents/local-ai ~/.config/local-ai
-
-# 2. Hook it into your shell
-#    zsh (macOS default):
-echo '[ -f "$HOME/.config/local-ai/ai-hook.sh" ] && source "$HOME/.config/local-ai/ai-hook.sh"' >> ~/.zshrc
-source ~/.zshrc
-
-#    bash:
-echo '[ -f "$HOME/.config/local-ai/ai-hook.sh" ] && source "$HOME/.config/local-ai/ai-hook.sh"' >> ~/.bashrc
-source ~/.bashrc
-
-# 3. Create your config
-cp ~/.config/local-ai/.env.example ~/.config/local-ai/.env
-#    …then edit .env and fill in the backends you want (see next section)
-
-# 4. Test it
-ai hello
+curl -fsSL https://raw.githubusercontent.com/wibawasuyadnya/local-ai-main/main/install.sh | bash
 ```
+
+Other ways:
+
+```bash
+# npm (global) — installs a `dotai` command that bootstraps on first run
+npm install -g wibawasuyadnya/local-ai-main
+
+# Homebrew
+brew tap wibawasuyadnya/dotai && brew install --HEAD dotai
+
+# Manual
+git clone https://github.com/wibawasuyadnya/local-ai-main.git ~/.config/local-ai
+echo 'source "$HOME/.config/local-ai/ai-hook.sh"' >> ~/.zshrc   # or ~/.bashrc
+cp ~/.config/local-ai/.env.example ~/.config/local-ai/.env
+```
+
+Then open a new terminal and type `ai`. Every install keeps its **own**
+`.env`, `settings.json`, projects and memory — nothing personal ships with
+the repo. Update any time with `curl … | bash` again (or `git pull`).
+
+**Desktop app:** grab the `.dmg` from the
+[releases page](https://github.com/wibawasuyadnya/local-ai-main/releases/latest)
+— drag DotAI to Applications. It talks to the same local server, so install
+the terminal version first. The app is unsigned: first launch is
+right-click → Open.
 
 ---
 

@@ -33,3 +33,10 @@ gui/
 
 # Persistent /settings user config stays local
 settings.json
+
+# Runtime user data — every install keeps its own; none of it belongs in git
+# (workspace databases, spend ledger, project workspaces, session/team caches)
+projects/*
+!projects/Readme.md
+history.md
+index-map-*.txt
