@@ -70,11 +70,13 @@ Then open a new terminal and type `ai`. Every install keeps its **own**
 `.env`, `settings.json`, projects and memory — nothing personal ships with
 the repo. Update any time with `curl … | bash` again (or `git pull`).
 
-**Desktop app:** grab the `.dmg` from the
-[releases page](https://github.com/wibawasuyadnya/dotai/releases/latest)
-— drag DotAI to Applications. It talks to the same local server, so install
+**Desktop app:** grab `DotAI-arm64.dmg` (Apple Silicon), `DotAI-x64.dmg`
+(Intel Mac) or `DotAI-x64.exe` (Windows, experimental — needs Python 3 on
+PATH) from the [releases page](https://github.com/wibawasuyadnya/dotai/releases/latest).
+Drag DotAI to Applications. It talks to the same local server, so install
 the terminal version first. The app is unsigned: first launch is
-right-click → Open.
+right-click → Open. Releasing a new version: `bash deploy/release.sh vX.Y.Z`
+(tags, bumps the brew formula + tap, builds the apps, uploads everything).
 
 ---
 

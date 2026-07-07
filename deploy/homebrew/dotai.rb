@@ -5,8 +5,8 @@
 #
 #   brew install wibawasuyadnya/dotai/dotai      # one-liner (auto-taps)
 #
-# New release checklist: git tag vX.Y.Z && git push origin vX.Y.Z, then
-# update `url`/`sha256` here (shasum -a 256 <tag tarball>) and in the tap.
+# New release: bash deploy/release.sh vX.Y.Z — does everything below, plus
+# builds/uploads the .dmg/.exe installers to the GitHub release.
 class Dotai < Formula
   desc "Local multi-agent AI for your terminal — Claude, Codex, OpenRouter, llama.cpp"
   homepage "https://wibawasuyadnya.github.io/dotai"
