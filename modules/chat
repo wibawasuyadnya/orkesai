@@ -16,7 +16,7 @@ try:
 except Exception:
     sys.stderr.write("Error: No valid chat history passed to brainstorm tool.\n")
     sys.exit(1)
-
+ 
 # 2. Parse Query Mode and Dynamic Option Count via Secure Regex
 query_string = " ".join(sys.argv[1:]).lower().strip()
 cmd_match = re.match(r'^/?([ftba])(?:\s+(\d+))?$', query_string)
