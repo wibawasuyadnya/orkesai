@@ -10,8 +10,8 @@
 class Dotai < Formula
   desc "Local multi-agent AI for your terminal — Claude, Codex, OpenRouter, llama.cpp"
   homepage "https://wibawasuyadnya.github.io/dotai"
-  url "https://github.com/wibawasuyadnya/dotai/archive/refs/tags/v0.9.0.tar.gz"
-  sha256 "32e5a4c557c87003481a52297cc25e92fb93e192e7bffb00bef70aca0f59aae1"
+  url "https://github.com/wibawasuyadnya/dotai/archive/refs/tags/v0.9.1.tar.gz"
+  sha256 "e29c99e86d1a6854e71d37a4acf01071b08fa3d5b8c7d7e2282e0e3f022f8e27"
   license "MIT"
   head "https://github.com/wibawasuyadnya/dotai.git", branch: "main"
 
