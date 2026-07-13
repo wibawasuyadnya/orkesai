@@ -28,8 +28,16 @@ __pycache__/
 mcp.json
 .venv/
 
-# GUI app stays local-only (not published to GitHub)
-gui/
+# GUI app: source is published for collaboration; build artifacts and the
+# locally-bundled emoji font (Apple-copyrighted — cannot be redistributed) stay out
+gui/node_modules/
+gui/.next/
+gui/out/
+gui/dist/
+gui/python-runtime/
+gui/tsconfig.tsbuildinfo
+gui/public/fonts/*
+!gui/public/fonts/README.md
 
 # Persistent /settings user config stays local
 settings.json
