@@ -6,7 +6,6 @@ import json
 import time
 import urllib.request as urlreq
 import urllib.error as urlerr
-import requests
 import agent_ui as ui
 
 # --- OPTIONAL SPEED-TEST HOOK ---
@@ -960,8 +959,11 @@ def stream_response(messages: list, prefix: str = "AI: ", cfg_dir: str = "", sho
 
 def get_accurate_token_count(text: str, server_url: str = "http://localhost:8080") -> int:
     try:
-        res = requests.post(f"{server_url}/tokenize", json={"content": text}, timeout=3)
-        return len(res.json().get("tokens", []))
+        req = urlreq.Request(f"{server_url}/tokenize",
+                             data=json.dumps({"content": text}).encode("utf-8"),
+                             headers={"Content-Type": "application/json"}, method="POST")
+        with urlreq.urlopen(req, timeout=3) as res:
+            return len(json.loads(res.read().decode("utf-8")).get("tokens", []))
     except Exception:
         return len(text) // 4
 

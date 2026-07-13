@@ -8,7 +8,7 @@
 #      source when invoked by the npm/brew wrappers with --local <dir>)
 #   2. Creates .env from .env.example if missing — YOUR keys, YOUR settings;
 #      never overwrites .env, settings.json, agents.json, projects/, sessions
-#   3. Ensures python3 + the one pip dependency (requests)
+#   3. Ensures python3 is available (stdlib only — no pip packages needed)
 #   4. Adds `source ~/.config/orkesai/ai-hook.sh` to your shell rc,
 #      which provides the `ai` command (and aic/aix/aio/ail/ais shortcuts)
 set -euo pipefail
@@ -58,12 +58,6 @@ fi
 if ! command -v python3 >/dev/null 2>&1; then
     warn "python3 is required — install it (macOS: xcode-select --install) and re-run"
     exit 1
-fi
-if ! python3 -c "import requests" >/dev/null 2>&1; then
-    say "installing python dependency: requests"
-    pip3 install --quiet --user requests 2>/dev/null \
-        || pip3 install --quiet --user --break-system-packages requests 2>/dev/null \
-        || warn "could not pip install requests — run: pip3 install requests"
 fi
 
 # ── 4. shell hook → the `ai` command ─────────────────────────────────────────

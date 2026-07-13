@@ -41,6 +41,25 @@
 
 ## Installation
 
+### Desktop app (recommended — nothing to preinstall)
+
+Grab the installer from the [releases page](https://github.com/wibawasuyadnya/orkesai/releases/latest):
+
+- `OrkesAI-arm64.dmg` — Mac, Apple Silicon
+- `OrkesAI-x64.dmg` — Mac, Intel
+- `OrkesAI-x64.exe` — Windows (experimental)
+
+Drag OrkesAI to Applications and open it — that's the whole install. The app
+ships with its **own Python runtime and the whole engine inside**; on first
+launch it sets up `~/.config/orkesai` (your private `.env`, agents, sessions)
+and starts the local server itself. Everything runs and stays on your machine.
+The app is unsigned, so the first launch is right-click → Open.
+
+The terminal CLI is **not** part of the app — desktop users never see a
+terminal. If you want it too, add it separately below.
+
+### Terminal CLI (optional, for terminal people)
+
 One line (installs to `~/.config/orkesai`, hooks your shell, creates your own `.env`):
 
 ```bash
@@ -62,17 +81,20 @@ echo 'source "$HOME/.config/orkesai/ai-hook.sh"' >> ~/.zshrc   # or ~/.bashrc
 cp ~/.config/orkesai/.env.example ~/.config/orkesai/.env
 ```
 
-Then open a new terminal and type `ai`. Every install keeps its **own**
-`.env`, `settings.json`, projects and memory — nothing personal ships with
-the repo. Update any time with `curl … | bash` again (or `git pull`).
+Then open a new terminal and type `ai`. CLI and desktop app share the same
+`~/.config/orkesai` — same agents, groups, automations and history in both.
 
-**Desktop app:** grab `OrkesAI-arm64.dmg` (Apple Silicon), `OrkesAI-x64.dmg`
-(Intel Mac) or `OrkesAI-x64.exe` (Windows, experimental — needs Python 3 on
-PATH) from the [releases page](https://github.com/wibawasuyadnya/orkesai/releases/latest).
-Drag OrkesAI to Applications. It talks to the same local server, so install
-the terminal version first. The app is unsigned: first launch is
-right-click → Open. Releasing a new version: `bash deploy/release.sh vX.Y.Z`
-(tags, bumps the brew formula + tap, builds the apps, uploads everything).
+### Self-host / VPS (optional)
+
+`deploy/` has a Dockerfile + compose file to run the API server on a box of
+your own (e.g. to keep webhook/scheduled automations firing while your laptop
+sleeps): `cd deploy && docker compose up -d --build`, then point the desktop
+app at it with `AI_GUI_URL`.
+
+Every install keeps its **own** `.env`, `settings.json`, projects and memory —
+nothing personal ships with the repo. Releasing a new version:
+`bash deploy/release.sh vX.Y.Z` (tags, bumps the brew formula + tap, builds
+the self-contained apps, uploads everything).
 
 ---
 

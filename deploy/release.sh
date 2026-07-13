@@ -51,15 +51,30 @@ git push origin main
 say "updating tap repo"
 git clone -q "https://github.com/wibawasuyadnya/homebrew-orkesai.git" "$TAP_DIR"
 cp deploy/homebrew/orkesai.rb "$TAP_DIR/Formula/orkesai.rb"
-git -C "$TAP_DIR" commit -aqm "orkesai ${VER#v}"
+git -C "$TAP_DIR" add -A
+git -C "$TAP_DIR" commit -qm "orkesai ${VER#v}"
 git -C "$TAP_DIR" push -q origin main
 
 # ── 3. desktop apps ──────────────────────────────────────────────────────────
-say "building desktop apps (dmg arm64 + x64, exe x64)"
+# Each installer embeds a standalone CPython (astral-sh/python-build-standalone)
+# plus the server payload, so users need NOTHING preinstalled — drag, drop, run.
+fetch_python() { # $1 = target triple, e.g. aarch64-apple-darwin
+    say "fetching python runtime ($1)"
+    rm -rf "$ROOT/gui/python-runtime" && mkdir -p "$ROOT/gui/python-runtime"
+    local url
+    url=$(curl -fsSL https://api.github.com/repos/astral-sh/python-build-standalone/releases/latest \
+        | python3 -c "import sys,json;print(next(a['browser_download_url'] for a in json.load(sys.stdin)['assets'] if 'cpython-3.12.' in a['name'] and '$1' in a['name'] and a['name'].endswith('install_only.tar.gz')))")
+    curl -fsSL "$url" | tar -xz -C "$ROOT/gui/python-runtime" --strip-components=1
+}
+
+say "building desktop apps (dmg arm64 + x64, exe x64) with embedded python"
 cd gui
 BUILD_TARGET=electron npx next build
+fetch_python aarch64-apple-darwin
 npx electron-builder --mac dmg --arm64
+fetch_python x86_64-apple-darwin
 npx electron-builder --mac dmg --x64
+fetch_python x86_64-pc-windows-msvc
 npx electron-builder --win nsis --x64
 cd "$ROOT"
 
@@ -70,8 +85,9 @@ import json, sys, urllib.request
 token, ver = sys.argv[1], sys.argv[2]
 body = (f"Install: `curl -fsSL https://raw.githubusercontent.com/wibawasuyadnya/orkesai/main/install.sh | bash`"
         f" · `npm install -g wibawasuyadnya/orkesai` · `brew install wibawasuyadnya/orkesai/orkesai`\n\n"
-        f"Desktop: OrkesAI-arm64.dmg (Apple Silicon) · OrkesAI-x64.dmg (Intel Mac) · "
-        f"OrkesAI-x64.exe (Windows, experimental — needs Python 3 on PATH)")
+        f"Desktop (nothing to preinstall — python + server are inside the app): "
+        f"OrkesAI-arm64.dmg (Apple Silicon) · OrkesAI-x64.dmg (Intel Mac) · "
+        f"OrkesAI-x64.exe (Windows, experimental)")
 req = urllib.request.Request(
     "https://api.github.com/repos/wibawasuyadnya/orkesai/releases",
     data=json.dumps({"tag_name": ver, "name": f"OrkesAI {ver}", "body": body,
