@@ -30,7 +30,7 @@
 
 | Requirement | Notes |
 | :--- | :--- |
-| **Python 3.9+** | Standard library only (plus `requests`) |
+| **Python 3.9+** | Standard library only — zero pip packages (desktop app ships its own Python) |
 | **macOS or Linux** | zsh and bash are both supported |
 | **[llama.cpp](https://github.com/ggml-org/llama.cpp)** | *Optional* — only for running local models (`brew install llama.cpp` / your package manager) |
 | **[Claude Code CLI](https://claude.com/claude-code)** | *Optional* — only for the Claude backend (`brew install claude` or `npm i -g @anthropic-ai/claude-code`, then `claude login`) |
