@@ -53,7 +53,13 @@ Drag OrkesAI to Applications and open it — that's the whole install. The app
 ships with its **own Python runtime and the whole engine inside**; on first
 launch it sets up `~/.config/orkesai` (your private `.env`, agents, sessions)
 and starts the local server itself. Everything runs and stays on your machine.
-The app is unsigned, so the first launch is right-click → Open.
+The app is not yet Apple-notarized, so after a browser download macOS says
+it "is damaged and can't be opened" — it isn't; that's Gatekeeper quarantine
+on unsigned apps. Clear it once and open normally:
+
+```bash
+xattr -cr /Applications/OrkesAI.app
+```
 
 The terminal CLI is **not** part of the app — desktop users never see a
 terminal. If you want it too, add it separately below.
