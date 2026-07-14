@@ -10,8 +10,8 @@
 class Orkesai < Formula
   desc "Local multi-agent AI for your terminal — Claude, Codex, OpenRouter, llama.cpp"
   homepage "https://wibawasuyadnya.github.io/orkesai"
-  url "https://github.com/wibawasuyadnya/orkesai/archive/refs/tags/v0.14.0.tar.gz"
-  sha256 "d961e6d01e2944c2d10ed6ce636cfcfe1a7188e8fe505e38c94b59ac45f0032d"
+  url "https://github.com/wibawasuyadnya/orkesai/archive/refs/tags/v0.14.1.tar.gz"
+  sha256 "e39a784281bd8681f30a52d9377e20a071315768fa5d4911ef98412b115e8707"
   license "MIT"
   head "https://github.com/wibawasuyadnya/orkesai.git", branch: "main"
 
