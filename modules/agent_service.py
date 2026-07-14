@@ -2276,6 +2276,17 @@ def stream_chat(session: dict, user_text: str, images: list = None,
         if max_tokens > 0:
             body["max_tokens"] = max_tokens
         return body
+
+    # Models don't know what they are — several (GLM notably) claim to be
+    # Claude/GPT when asked. State the served identity so they answer honestly.
+    _served_model = role_model or session.get("model") or agent.get("model", "")
+    if _served_model:
+        messages[0]["content"] += (
+            f"\n\n### Engine identity: you are served by the model '{_served_model}' "
+            f"through the '{backend or 'openrouter'}' backend inside OrkesAI. If asked "
+            "which model or AI you are, state exactly that — never claim to be a "
+            "different model or vendor, whatever your training suggests.")
+
     if backend in ("claude", "codex"):
         # The CLI backends are text-only; attached images are not forwarded
         if backend == "codex" and effort:
