@@ -50,3 +50,8 @@ history.md
 index-map-*.txt
 automations.json
 groups.json
+
+# Learned files are PERSONAL — never publish them (dev machines symlink the
+# config dir to this repo, so they must be ignored here too)
+PROFILE.md
+skills/custom/auto-*.md
