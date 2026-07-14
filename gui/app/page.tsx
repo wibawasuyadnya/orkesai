@@ -834,9 +834,7 @@ export default function Home() {
                     <GroupAvatars group={activeGroup} agents={agents} size={18} />
                   ) : activeAgent ? (
                     <span className="role-emoji">{activeAgent.icon}</span>
-                  ) : (
-                    <Icon name="spark" size={14} fill />
-                  )}{" "}
+                  ) : null}{" "}
                   {chatName}
                 </span>
                 <span className="top-title">{active.title}</span>

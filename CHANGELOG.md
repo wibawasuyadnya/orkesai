@@ -3,8 +3,10 @@
 Every release and what it brought. Versions link to the GitHub release with
 the downloadable installers.
 
-## Unreleased
+## [v0.14.1](https://github.com/wibawasuyadnya/orkesai/releases/tag/v0.14.1) — 2026-07-14
 
+- New accent color `#0073e6` (dark and light themes); the star icon is gone
+  from the chat header pill.
 - Legacy terminal TPM facts migrate into the shared brain automatically
   (once, on first open — 'key: value' facts, scoped per old workspace);
   the Databases pane now shows `.memory.db` with per-scope counts, and
