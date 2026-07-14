@@ -8,19 +8,23 @@ the downloadable installers.
 - New accent color `#0073e6` (dark and light themes); the star icon is gone
   from the chat header pill.
 - Legacy terminal TPM facts migrate into the shared brain automatically
-  (once, on first open — 'key: value' facts, scoped per old workspace);
-  the Databases pane now shows `.memory.db` with per-scope counts, and
+  (once, on first open — 'key: value' facts, scoped per old workspace).
+- The Databases pane now shows `.memory.db` with per-scope counts, and
   deleting it wipes the brain's contents without breaking the store.
 
-- **One shared memory — one brain for GUI and terminal** (`.memory.db`,
-  SQLite + FTS5, stdlib only). What one frontend learns, the other knows.
-  Every memory is scoped (everywhere / per-@role / per-project), typed
-  (fact / preference / learning) and tiered: **pinned** memories always ride
-  along with every message, normal ones are recalled by relevance, ephemerals
-  age out. Fully user-managed: Settings → Memory pane (add / search / edit /
-  pin / forget), terminal `/mem`, and `/api/memories` — the AI never edits
-  your memories, and with learning ON it proposes new ones from your chats.
+## [v0.14.0](https://github.com/wibawasuyadnya/orkesai/releases/tag/v0.14.0) — 2026-07-14
 
+**One shared memory — one brain for GUI and terminal.**
+
+- `.memory.db` (SQLite + FTS5, stdlib only): what one frontend learns, the
+  other knows. Every memory is scoped (everywhere / per-@role / per-project),
+  typed (fact / preference / learning) and tiered — **pinned** memories always
+  ride along with every message, normal ones are recalled by relevance,
+  ephemerals age out.
+- Fully user-managed: Settings → Memory pane (add / search / edit / pin /
+  forget), terminal `/mem` (also one-shot: `ai /mem …`), and `/api/memories`.
+  The AI never edits your memories; with learning ON it proposes new ones
+  from your chats, deduped against what it already knows.
 - **Automations get a working folder** ("Works in folder"): commands run
   there and the agent may create/update files INSIDE it without asking —
   writes outside it and destructive shell stay denied. Enables recipes like
