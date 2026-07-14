@@ -26,6 +26,9 @@ const SERVER = path.join(os.homedir(), ".config", "orkesai", "server", "server.p
 const UI_DIR = path.join(__dirname, "..", "out"); // static export, inside app.asar
 // orkesai.icns is used when packaging; the png sets the dev dock/window icon
 const ICON_PNG = path.join(__dirname, "..", "assets", "orkesai-icon.png");
+// macOS never rounds icons for you — the dock artwork carries its own
+// rounded-rect shape with transparent margins
+const DOCK_PNG = path.join(__dirname, "..", "assets", "orkesai-dock.png");
 
 let serverProc = null;
 
@@ -161,7 +164,7 @@ function serveUi() {
 async function createWindow() {
   if (IS_LOCAL) await ensureServer();
   if (process.platform === "darwin" && app.dock) {
-    try { app.dock.setIcon(ICON_PNG); } catch {}
+    try { app.dock.setIcon(DOCK_PNG); } catch {}
   }
   const win = new BrowserWindow({
     width: 1400,

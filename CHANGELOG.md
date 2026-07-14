@@ -3,6 +3,11 @@
 Every release and what it brought. Versions link to the GitHub release with
 the downloadable installers.
 
+## [v0.14.2](https://github.com/wibawasuyadnya/orkesai/releases/tag/v0.14.2) — 2026-07-14
+
+- Proper macOS app icon: rounded-rect artwork with transparent margins on
+  Apple's icon grid — the Dock no longer shows a hard white square.
+
 ## [v0.14.1](https://github.com/wibawasuyadnya/orkesai/releases/tag/v0.14.1) — 2026-07-14
 
 - New accent color `#0073e6` (dark and light themes); the star icon is gone

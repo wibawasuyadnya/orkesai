@@ -1,6 +1,6 @@
 {
   "name": "orkesai-agent",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "description": "OrkesAI — local multi-agent AI for your terminal (Claude, Codex, OpenRouter, local llama.cpp)",
   "bin": {
     "orkesai": "bin/orkesai"

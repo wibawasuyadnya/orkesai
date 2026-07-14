@@ -1,6 +1,6 @@
 {
   "name": "orkesai-gui",
-  "version": "0.14.1",
+  "version": "0.14.2",
   "private": true,
   "description": "OrkesAI multi-agent web GUI (Next.js) + Electron shell",
   "main": "electron/main.js",
