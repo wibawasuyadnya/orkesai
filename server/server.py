@@ -134,6 +134,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(svc.context_view(params.get("agent", "default"), params.get("session", "")))
         if path == "/api/models/openrouter":
             return self._json(svc.openrouter_catalog(params.get("refresh") == "1"))
+        if path == "/api/team/templates":
+            return self._json({"templates": svc.list_team_templates()})
+        if path == "/api/setup/clis":
+            return self._json(svc.cli_status())
         if path == "/api/integrations":
             return self._json({"integrations": svc.list_integrations()})
         if path == "/api/automations":
@@ -274,6 +278,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._ok(auto.create_automation(self._body()))
         if self.path == "/api/groups":
             return self._ok(svc.create_group(self._body()))
+        if self.path == "/api/team/template":
+            return self._ok(svc.apply_team_template(self._body().get("id", "")))
+        if self.path == "/api/setup/install":
+            return self._ok(svc.install_clis(self._body().get("clis", [])))
         if self.path == "/api/automations/import":
             return self._ok(auto.import_automation(self._body()))
         if len(seg) == 4 and seg[1] == "automations" and seg[3] == "run":

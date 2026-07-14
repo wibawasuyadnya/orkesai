@@ -86,6 +86,7 @@ export interface Settings {
   default_system: string; // instructions/system prompt for the default chat
   appearance: string; // dark|light|system
   full_disk: boolean;
+  onboarded: boolean; // first-run setup wizard completed
 }
 
 export interface Project {
@@ -132,6 +133,21 @@ async function j<T>(r: Response): Promise<T> {
 export interface CatalogModel { id: string; name: string }
 export const getOpenrouterCatalog = async (): Promise<{ count: number; models: CatalogModel[] }> =>
   fetch(`${API}/api/models/openrouter`).then(j<{ count: number; models: CatalogModel[] }>);
+
+// ── first-run setup wizard ────────────────────────────────────────────────────
+export interface TeamTemplate { id: string; label: string; persona: string; roles: { name: string; icon: string }[] }
+export const getTeamTemplates = async (): Promise<TeamTemplate[]> =>
+  (await j<{ templates: TeamTemplate[] }>(await fetch(`${API}/api/team/templates`))).templates;
+export const applyTeamTemplate = (id: string): Promise<{ created: Agent[]; agents: Agent[] }> =>
+  fetch(`${API}/api/team/template`, { method: "POST", body: JSON.stringify({ id }) }).then(j<{ created: Agent[]; agents: Agent[] }>);
+export interface CliStatus {
+  claude: boolean; codex: boolean; npm: boolean; brew: boolean;
+  installing: string[]; errors: Record<string, string>;
+}
+export const getCliStatus = (): Promise<CliStatus> =>
+  fetch(`${API}/api/setup/clis`).then(j<CliStatus>);
+export const installClis = (clis: string[]): Promise<CliStatus> =>
+  fetch(`${API}/api/setup/install`, { method: "POST", body: JSON.stringify({ clis }) }).then(j<CliStatus>);
 
 // ── custom API integrations (Settings → Integrations) ────────────────────────
 export interface Integration {

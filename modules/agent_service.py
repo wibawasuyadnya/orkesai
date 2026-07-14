@@ -191,6 +191,113 @@ def create_agent(data: dict):
     return agent, ""
 
 
+# ── First-run team templates (GUI setup wizard) ──────────────────────────────
+# A fresh install ships with NO roles; the setup splash offers one of these
+# per persona, or "custom" (empty team, build your own).
+
+_T_MODEL = "deepseek/deepseek-v4-flash"
+TEAM_TEMPLATES = {
+    "business": {"label": "Business team", "persona": "Business owner", "roles": [
+        ("Strategist", "🧭", "You are a business strategist. Sharpen positioning, pricing and priorities; give decisions, trade-offs and next actions — never generic advice."),
+        ("Operations", "🗂️", "You are an operations manager. Turn goals into processes, checklists and SOPs; spot bottlenecks and cut busywork."),
+        ("Sales Coach", "🤝", "You are a sales coach. Draft outreach, handle objections, structure deals and follow-ups in the user's voice."),
+    ]},
+    "marketing": {"label": "Marketing team", "persona": "Marketer", "roles": [
+        ("Copywriter", "✍️", "You are a conversion copywriter. Write hooks, ads, landing pages and emails; punchy, concrete, on brand — no filler."),
+        ("Content Planner", "🗓️", "You are a content strategist. Build calendars, angles and channel plans tied to a goal; repurpose one idea across formats."),
+        ("SEO Analyst", "🔎", "You are an SEO analyst. Keywords, intent, briefs, on-page fixes; back every recommendation with the why."),
+    ]},
+    "finance": {"label": "Finance team", "persona": "Finance pro", "roles": [
+        ("Analyst", "📊", "You are a financial analyst. Model scenarios, unit economics, budgets and forecasts; show assumptions and sensitivity."),
+        ("Bookkeeper", "🧾", "You are a bookkeeping assistant. Categorize, reconcile, summarize cash flow; flag anomalies plainly."),
+        ("Advisor", "💼", "You are a pragmatic finance advisor. Explain options and risk in plain language; never hide the downside."),
+    ]},
+    "data": {"label": "Data team", "persona": "Data analyst", "roles": [
+        ("Analyst", "📈", "You are a data analyst. Turn questions into queries and analyses; state findings first, method second, caveats always."),
+        ("SQL Engineer", "🗄️", "You are a SQL specialist. Write and optimize queries and schemas; explain query plans when performance matters."),
+        ("Visualizer", "🎯", "You are a data visualization expert. Pick the right chart, design it cleanly, and write the one-line takeaway."),
+    ]},
+    "code": {"label": "Engineering team", "persona": "Engineer", "roles": [
+        ("Debugger", "⚙️", "You are a debugging specialist. Trace errors to root cause, reference exact files and lines, hand back the smallest fix that solves it."),
+        ("Reviewer", "🔍", "You are a code reviewer. Rank issues by severity with concrete failure scenarios; suggest simplifications, never nitpicks."),
+        ("Architect", "🏗️", "You are a software architect. Design pragmatic structures and interfaces; name trade-offs and the migration path."),
+    ]},
+    "creative": {"label": "Creative team", "persona": "Digital artist", "roles": [
+        ("Art Director", "🎨", "You are an art director. Develop visual direction, moodboards, composition and critique with specific, actionable notes."),
+        ("Prompt Artist", "🖼️", "You are an image-prompt specialist. Craft and iterate generation prompts; explain which words drive which result."),
+        ("Storyteller", "📖", "You are a narrative writer. Concepts, scripts and captions with a distinct voice; kill clichés on sight."),
+    ]},
+}
+
+
+def list_team_templates() -> list:
+    return [{"id": tid, "label": t["label"], "persona": t["persona"],
+             "roles": [{"name": n, "icon": i} for n, i, _ in t["roles"]]}
+            for tid, t in TEAM_TEMPLATES.items()]
+
+
+def apply_team_template(tid: str):
+    t = TEAM_TEMPLATES.get(str(tid or "").strip().lower())
+    if not t:
+        return None, f"unknown template — one of: {', '.join(TEAM_TEMPLATES)}"
+    made = []
+    existing = {a["name"].lower() for a in list_agents()}
+    for name, icon, system in t["roles"]:
+        if name.lower() in existing:
+            continue  # re-running the wizard never duplicates a team
+        a, err = create_agent({"name": name, "icon": icon, "model": _T_MODEL,
+                               "backend": "openrouter", "system": system})
+        if a:
+            made.append(a)
+    return {"created": made, "agents": list_agents()}, ""
+
+
+# ── CLI detection / install (setup wizard) ────────────────────────────────────
+
+_CLI_PKG = {"claude": "@anthropic-ai/claude-code", "codex": "@openai/codex"}
+_CLI_INSTALLING = set()
+_CLI_ERRORS = {}
+
+
+def cli_status() -> dict:
+    import shutil
+    return {"claude": bool(shutil.which("claude")),
+            "codex": bool(shutil.which("codex")),
+            "npm": bool(shutil.which("npm")),
+            "brew": bool(shutil.which("brew")),
+            "installing": sorted(_CLI_INSTALLING),
+            "errors": dict(_CLI_ERRORS)}
+
+
+def install_clis(names: list):
+    """Kick off `npm install -g` for the chosen CLIs in the background; the
+    wizard polls cli_status() until `installing` drains."""
+    import shutil
+    import subprocess
+    if not shutil.which("npm"):
+        return None, "npm is not installed — install Node.js first (nodejs.org) or use the advanced option"
+    todo = [n for n in (names or []) if n in _CLI_PKG
+            and n not in _CLI_INSTALLING and not shutil.which(n)]
+
+    def run(name):
+        try:
+            r = subprocess.run(["npm", "install", "-g", _CLI_PKG[name]],
+                               capture_output=True, text=True, timeout=420)
+            if r.returncode != 0:
+                _CLI_ERRORS[name] = (r.stderr or r.stdout or "install failed").strip()[-400:]
+            else:
+                _CLI_ERRORS.pop(name, None)
+        except Exception as e:
+            _CLI_ERRORS[name] = str(e)
+        finally:
+            _CLI_INSTALLING.discard(name)
+
+    for n in todo:
+        _CLI_INSTALLING.add(n)
+        threading.Thread(target=run, args=(n,), daemon=True).start()
+    return cli_status(), ""
+
+
 def update_agent(agent_id: str, data: dict):
     """Edit a team agent's fields. Returns (agent, error). A backend/model
     change drops an 'engine' divider into every conversation the role speaks
@@ -269,6 +376,8 @@ def gui_settings() -> dict:
         "default_system": str(data.get("default_system", "") or ""),
         "appearance": str(data.get("appearance", "dark") or "dark"),
         "full_disk": bool(data.get("full_disk", False)),
+        # first-run setup wizard completed? (fresh installs ship NO roles)
+        "onboarded": bool(data.get("onboarded", False)),
     }
 
 
@@ -309,6 +418,8 @@ def save_gui_settings(data: dict) -> str:
         agent_settings.set("appearance", v)
     if "full_disk" in data:
         agent_settings.set("full_disk", bool(data["full_disk"]))
+    if "onboarded" in data:
+        agent_settings.set("onboarded", bool(data["onboarded"]))
     # Take effect now (edit mode / startup backend), same precedence as startup
     agent_settings.apply_startup(_REAL_ENV_BACKEND, _REAL_ENV_EDIT)
     return ""

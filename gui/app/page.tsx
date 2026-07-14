@@ -9,6 +9,7 @@ import Composer from "@/components/Composer";
 import ChatList from "@/components/ChatList";
 import ProjectsView from "@/components/ProjectsView";
 import SettingsModal from "@/components/SettingsModal";
+import SetupView from "@/components/SetupView";
 import AgentModal from "@/components/AgentModal";
 import AskModal, { AskSpec } from "@/components/AskModal";
 import AutomationsView from "@/components/AutomationsView";
@@ -42,6 +43,7 @@ import {
   getSessions,
   getSettings,
   runAutomation,
+  saveSettings,
   streamChat,
   updateSession,
 } from "@/lib/api";
@@ -144,6 +146,7 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>({
     agent: "auto", edit: "on", spellcheck: true, default_agent: DEFAULT_AGENT,
     default_backend: "openrouter", default_model: "", default_system: "", appearance: "dark", full_disk: false,
+    onboarded: true, // real value arrives with getSettings — avoids a splash flash
   });
 
   const [active, setActive] = useState<Session | null>(null);
@@ -167,6 +170,8 @@ export default function Home() {
   const [filesVer, setFilesVer] = useState(0);
 
   const [showSettings, setShowSettings] = useState(false);
+  // true once settings + first data load resolved — gates the setup splash
+  const [booted, setBooted] = useState(false);
   const [agentModal, setAgentModal] = useState<{ agent: Agent | null } | null>(null);
   const [automations, setAutomations] = useState<Automation[]>([]);
   // which automation the Automations PAGE shows: an id, "new", or null (grid)
@@ -214,14 +219,23 @@ export default function Home() {
   }, [selModel]);
 
   useEffect(() => {
-    refresh();
-    getSettings().then((r) => setSettings(r.settings)).catch(() => {});
+    Promise.allSettled([
+      refresh(),
+      getSettings().then((r) => setSettings(r.settings)),
+    ]).then(() => setBooted(true));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const el = document.documentElement;
     el.dataset.theme = settings.appearance === "system" ? "" : settings.appearance;
   }, [settings.appearance]);
+
+  // Pre-wizard installs already have a team — never bother them with setup
+  useEffect(() => {
+    if (!booted || settings.onboarded || agents.length === 0) return;
+    saveSettings({ onboarded: true }).catch(() => {});
+    setSettings((s) => ({ ...s, onboarded: true }));
+  }, [booted, agents.length, settings.onboarded]);
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight });
@@ -592,6 +606,56 @@ export default function Home() {
     setOfflineReq(null);
   }
 
+  const composerEl = (
+    <Composer
+      agents={agents}
+      backends={backends}
+      projects={projects}
+      draft={draft}
+      setDraft={setDraft}
+      attachments={attachments}
+      setAttachments={setAttachments}
+      spellcheck={settings.spellcheck}
+      streaming={streaming}
+      backend={curBackend}
+      model={curModel}
+      effort={curEffort}
+      temperature={curTemp}
+      maxTokens={curMaxTokens}
+      role={active ? active.agent : selRole}
+      project={curProject}
+      locked={!!active}
+      engineLocked={engineLocked || !!activeGroup}
+      groupMembers={activeGroup ? groupMembers : undefined}
+      onEditRole={() => activeAgent && setAgentModal({ agent: activeAgent })}
+      onPickEngine={pickEngine}
+      onPickEffort={pickEffort}
+      onPickTemp={pickTemp}
+      onPickMaxTokens={pickMaxTokens}
+      onPickRole={pickRole}
+      onPickProject={pickProject}
+      onNewProject={newProjectFlow}
+      onNewRole={() => setAgentModal({ agent: null })}
+      onAddModel={addModelFlow}
+      onSend={onComposerSend}
+      onStop={stopGenerating}
+    />
+  );
+
+  // First-run setup splash: fresh installs ship with no @roles and the wizard
+  // not yet completed. Existing installs (a team already exists) skip it.
+  if (booted && !offline && !settings.onboarded && agents.length === 0) {
+    return (
+      <SetupView
+        onDone={() => {
+          setSettings((s) => ({ ...s, onboarded: true }));
+          refresh();
+          newChat();
+        }}
+      />
+    );
+  }
+
   return (
     <div className="app">
       {/* ── single sidebar (collapses to icons) ── */}
@@ -811,6 +875,8 @@ export default function Home() {
                     {curBackend} · {curModel}
                     {selProject ? ` · in ${projName(selProject)}` : ""}
                   </p>
+                  {/* fresh start: the message box sits center-stage */}
+                  <div className="welcome-composer">{composerEl}</div>
                   {offline && (
                     <div className="offline-note">
                       The OrkesAI server isn’t running. Open a terminal, type <code>ais</code>, then come back.
@@ -986,39 +1052,7 @@ export default function Home() {
               )}
             </div>
 
-            <Composer
-              agents={agents}
-              backends={backends}
-              projects={projects}
-              draft={draft}
-              setDraft={setDraft}
-              attachments={attachments}
-              setAttachments={setAttachments}
-              spellcheck={settings.spellcheck}
-              streaming={streaming}
-              backend={curBackend}
-              model={curModel}
-              effort={curEffort}
-              temperature={curTemp}
-              maxTokens={curMaxTokens}
-              role={active ? active.agent : selRole}
-              project={curProject}
-              locked={!!active}
-              engineLocked={engineLocked || !!activeGroup}
-              groupMembers={activeGroup ? groupMembers : undefined}
-              onEditRole={() => activeAgent && setAgentModal({ agent: activeAgent })}
-              onPickEngine={pickEngine}
-              onPickEffort={pickEffort}
-              onPickTemp={pickTemp}
-              onPickMaxTokens={pickMaxTokens}
-              onPickRole={pickRole}
-              onPickProject={pickProject}
-              onNewProject={newProjectFlow}
-              onNewRole={() => setAgentModal({ agent: null })}
-              onAddModel={addModelFlow}
-              onSend={onComposerSend}
-              onStop={stopGenerating}
-            />
+            {active && composerEl}
             <div className="statusbar">
               <span>
                 {activeGroup
