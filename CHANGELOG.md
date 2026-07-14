@@ -5,6 +5,15 @@ the downloadable installers.
 
 ## Unreleased
 
+- **One shared memory — one brain for GUI and terminal** (`.memory.db`,
+  SQLite + FTS5, stdlib only). What one frontend learns, the other knows.
+  Every memory is scoped (everywhere / per-@role / per-project), typed
+  (fact / preference / learning) and tiered: **pinned** memories always ride
+  along with every message, normal ones are recalled by relevance, ephemerals
+  age out. Fully user-managed: Settings → Memory pane (add / search / edit /
+  pin / forget), terminal `/mem`, and `/api/memories` — the AI never edits
+  your memories, and with learning ON it proposes new ones from your chats.
+
 - **Automations get a working folder** ("Works in folder"): commands run
   there and the agent may create/update files INSIDE it without asking —
   writes outside it and destructive shell stay denied. Enables recipes like

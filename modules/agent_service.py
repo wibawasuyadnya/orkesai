@@ -1745,10 +1745,34 @@ def _maybe_autoskill(role_id: str, user_text: str, answer: str) -> None:
                 break
 
 
+def _extract_memories(role_id: str, user_text: str, answer: str) -> None:
+    """Distill 0-3 durable memories from the exchange into the shared brain."""
+    import agent_memory
+    scope = f"role:{role_id}" if role_id and role_id != DEFAULT_AGENT_ID else "global"
+    existing = agent_memory.recall([scope, "global"], user_text, k=6)
+    known = "\n".join(f"- {m['body'][:150]}" for m in existing)
+    out = _flash(
+        "Extract DURABLE memories from this exchange for a personal AI: stable facts about the "
+        "user's life/work/tools, or explicit preferences/corrections. Not small talk, not "
+        "one-off task details. Reply with 0 to 3 lines, each 'fact: <one sentence>' or "
+        "'preference: <one sentence>'. If nothing durable, reply exactly NONE."
+        + (f"\nAlready known (do NOT repeat):\n{known}" if known else "")
+        + f"\n\nuser: {user_text[:1500]}\nassistant: {answer[:1500]}\n\nMemories:",
+        max_tokens=200)
+    if not out or out[:10].strip().upper().startswith("NONE"):
+        return
+    for line in out.splitlines()[:3]:
+        kind, _, body = line.partition(":")
+        kind = kind.strip().lower().lstrip("- ")
+        if kind in ("fact", "preference") and body.strip():
+            agent_memory.add_memory(body.strip(), scope=scope, kind=kind, source="learned")
+
+
 def _learn_from_turn(role_id: str, user_text: str, answer: str) -> None:
     """Post-turn write-back (daemon thread; failures stay silent)."""
     try:
         _update_profile(user_text, answer)
+        _extract_memories(role_id, user_text, answer)
         _maybe_autoskill(role_id, user_text, answer)
     except Exception:
         pass
@@ -2495,6 +2519,23 @@ def stream_chat(session: dict, user_text: str, images: list = None,
                               "notes, give them the content directly in your reply, then add one short line telling "
                               "them to enable 'Let the AI keep notes' in the Notes panel if they want notes saved "
                               "(saved notes can then be exported as PDF, DOCX, XLSX or CSV).")
+    except Exception:
+        pass
+
+    # THE shared memory (one brain for GUI + terminal): pinned memories always
+    # ride along, the rest are recalled by relevance to this message. Fully
+    # user-managed (Settings → Memory, /mem, /api/memories).
+    try:
+        import agent_memory
+        _scopes = ["global"]
+        if as_role or (session["agent"] != DEFAULT_AGENT_ID):
+            _scopes.append(f"role:{as_role or session['agent']}")
+        if session.get("project"):
+            _scopes.append(f"project:{session['project']}")
+        _mems = agent_memory.recall(_scopes, user_text, k=8)
+        if _mems:
+            system_prompt += ("\n\n### Memories (user-managed — never claim to have edited them):\n"
+                              + "\n".join(f"- [{m['kind']}] {m['body'][:400]}" for m in _mems))
     except Exception:
         pass
 

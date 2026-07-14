@@ -340,6 +340,50 @@ def auto_command(query: str) -> None:
     print("\033[2m  /auto · /auto run <name> · /auto on|off <name>\033[0m\n")
 
 
+def mem_command(query: str) -> None:
+    """/mem — the ONE shared memory (same brain the GUI uses).
+    list [scope] · add [@role] <text> · pin/unpin <id> · rm <id> · search <q>"""
+    import agent_memory as mem
+    parts = query.split(None, 2)
+    sub = parts[1] if len(parts) > 1 else "list"
+    arg = parts[2].strip() if len(parts) > 2 else ""
+    if sub == "list":
+        rows = mem.list_memories(scope=arg, limit=30)
+        for m in rows:
+            pin = "\033[1;33m*\033[0m" if m["importance"] == "pinned" else " "
+            print(f"  {pin} \033[2m{m['id'][:8]}\033[0m [{m['kind'][:4]}] {m['body'][:90]}"
+                  + (f" \033[2m({m['scope']})\033[0m" if m['scope'] != 'global' else ""))
+        st = mem.stats()
+        print(f"\033[2m  {st['total']} memories · * = pinned · /mem add|pin|rm|search — shared with the GUI\033[0m\n")
+        return
+    if sub == "add" and arg:
+        scope = "global"
+        if arg.startswith("@"):
+            role, _, rest = arg.partition(" ")
+            scope, arg = f"role:{role[1:]}", rest.strip()
+        m, err = mem.add_memory(arg, scope=scope, kind="fact", source="terminal")
+        print(f"\033[1;31m[mem] {err}\033[0m\n" if err else f"\033[1;33m[mem] remembered ({m['id'][:8]}, {scope})\033[0m\n")
+        return
+    if sub in ("pin", "unpin", "rm") and arg:
+        target = next((m for m in mem.list_memories(limit=500) if m["id"].startswith(arg)), None)
+        if not target:
+            print(f"\033[1;31m[mem] no memory id starting '{arg}'\033[0m\n")
+            return
+        if sub == "rm":
+            mem.delete_memory(target["id"])
+            print("\033[1;33m[mem] forgotten\033[0m\n")
+        else:
+            mem.update_memory(target["id"], {"importance": "pinned" if sub == "pin" else "normal"})
+            print(f"\033[1;33m[mem] {'pinned — always recalled' if sub == 'pin' else 'unpinned'}\033[0m\n")
+        return
+    if sub == "search" and arg:
+        for m in mem.list_memories(q=arg, limit=15):
+            print(f"  \033[2m{m['id'][:8]}\033[0m [{m['kind'][:4]}] {m['body'][:90]}")
+        print()
+        return
+    print("\033[2m  /mem · /mem add [@role] <text> · /mem pin|unpin|rm <id> · /mem search <q>\033[0m\n")
+
+
 def models_command(query: str) -> None:
     """/models [search] — the full OpenRouter catalog (same list as the GUI)."""
     import agent_service as svc
@@ -392,6 +436,7 @@ HELP_TEXT = """\033[1mcommands\033[0m
   \033[1;36m/group add\033[0m <name> @role @role…   \033[2mcreate a group · /group rm <name>\033[0m
   \033[1;36m/auto\033[0m               \033[2mlist automations · /auto run <name> · /auto on|off <name>\033[0m
   \033[1;36m/models\033[0m [search]    \033[2mbrowse the full OpenRouter catalog · then /model <slug>\033[0m
+  \033[1;36m/mem\033[0m                \033[2mthe ONE shared memory (GUI + terminal) · add [@role] <text> · pin|rm <id> · search\033[0m
 """
 
 
@@ -417,6 +462,16 @@ def run_interactive_chat(args: list):
             _prof = _svc.read_profile()
             if _prof:
                 active_system_prompt += "\n\n### User profile (learned, PROFILE.md):\n" + _prof[:2500]
+    except Exception:
+        pass
+
+    # THE shared memory — same brain the GUI uses (pinned always ride along)
+    try:
+        import agent_memory as _mem
+        _mems = _mem.recall(["global", f"project:{workspace_path}"], "", k=8)
+        if _mems:
+            active_system_prompt += ("\n\n### Memories (user-managed via /mem — never claim to have edited them):\n"
+                                     + "\n".join(f"- [{m['kind']}] {m['body'][:400]}" for m in _mems))
     except Exception:
         pass
 
@@ -673,6 +728,9 @@ def run_interactive_chat(args: list):
                 continue
             if query.split()[0] == "/models":
                 models_command(query)
+                continue
+            if query.split()[0] in ("/mem", "/memory", "/memories"):
+                mem_command(query)
                 continue
 
             # --- PROJECT FOCUS: /project [name|path] — each project keeps its own
@@ -953,6 +1011,9 @@ def run_direct_query(args: list):
         sys.exit(0)
     if query_parts and query_parts[0] == "/models":
         models_command(" ".join(query_parts))
+        sys.exit(0)
+    if query_parts and query_parts[0] in ("/mem", "/memory", "/memories"):
+        mem_command(" ".join(query_parts))
         sys.exit(0)
     if query_parts and query_parts[0].startswith("@"):
         import agent_roles as roles

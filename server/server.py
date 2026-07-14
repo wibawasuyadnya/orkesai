@@ -47,6 +47,7 @@ sys.path.insert(0, os.path.join(os.path.expanduser("~"), ".config", "orkesai", "
 import agent_service as svc  # noqa: E402
 import agent_settings  # noqa: E402
 import agent_automations as auto  # noqa: E402
+import agent_memory as mem  # noqa: E402
 
 HOST = os.environ.get("AI_SERVER_HOST", "127.0.0.1")
 PORT = int(os.environ.get("AI_SERVER_PORT", "8765"))
@@ -138,6 +139,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json({"templates": svc.list_team_templates()})
         if path == "/api/setup/clis":
             return self._json(svc.cli_status())
+        if path == "/api/memories":
+            return self._json({"memories": mem.list_memories(
+                _unquote(params.get("scope", "")), _unquote(params.get("kind", "")),
+                _unquote(params.get("q", ""))), "stats": mem.stats()})
         if path == "/api/integrations":
             return self._json({"integrations": svc.list_integrations()})
         if path == "/api/automations":
@@ -194,6 +199,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._ok(svc.delete_integration(seg[2]))
         if len(seg) == 3 and seg[1] == "automations":
             return self._ok(auto.delete_automation(seg[2]))
+        if path == "/api/memories" and params.get("scope"):
+            return self._ok(mem.wipe_scope(_unquote(params["scope"])))
+        if len(seg) == 3 and seg[1] == "memories":
+            return self._ok(mem.delete_memory(seg[2]))
         if len(seg) == 3 and seg[1] == "groups":
             return self._ok(svc.delete_group(seg[2]))
         if len(seg) == 3 and seg[1] == "notes":
@@ -218,6 +227,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._ok(svc.update_session(seg[2], self._body()))
         if len(seg) == 3 and seg[1] == "automations":
             return self._ok(auto.update_automation(seg[2], self._body()))
+        if len(seg) == 3 and seg[1] == "memories":
+            return self._ok(mem.update_memory(seg[2], self._body()))
         if len(seg) == 3 and seg[1] == "groups":
             return self._ok(svc.update_group(seg[2], self._body()))
         if self.path == "/api/notes-auto":
@@ -282,6 +293,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._ok(svc.apply_team_template(self._body().get("id", "")))
         if self.path == "/api/setup/install":
             return self._ok(svc.install_clis(self._body().get("clis", [])))
+        if self.path == "/api/memories":
+            b = self._body()
+            return self._ok(mem.add_memory(b.get("body", ""), b.get("scope", "global"),
+                                           b.get("kind", "fact"), b.get("title", ""),
+                                           b.get("importance", "normal"), "manual"))
         if self.path == "/api/automations/import":
             return self._ok(auto.import_automation(self._body()))
         if len(seg) == 4 and seg[1] == "automations" and seg[3] == "run":

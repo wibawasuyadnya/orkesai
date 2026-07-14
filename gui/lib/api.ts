@@ -150,6 +150,28 @@ export const getCliStatus = (): Promise<CliStatus> =>
 export const installClis = (clis: string[]): Promise<CliStatus> =>
   fetch(`${API}/api/setup/install`, { method: "POST", body: JSON.stringify({ clis }) }).then(j<CliStatus>);
 
+
+// ── the ONE shared memory (GUI + terminal, user-managed) ─────────────────────
+export interface MemoryItem {
+  id: string; scope: string; kind: string; title: string; body: string;
+  importance: "pinned" | "normal" | "ephemeral"; source: string;
+  created: number; updated: number; last_used: number; uses: number;
+}
+export interface MemoryStats { total: number; by_scope: Record<string, number>; fts: boolean; file: string }
+export const getMemories = async (opts: { scope?: string; kind?: string; q?: string } = {}): Promise<{ memories: MemoryItem[]; stats: MemoryStats }> => {
+  const p = new URLSearchParams();
+  if (opts.scope) p.set("scope", opts.scope);
+  if (opts.kind) p.set("kind", opts.kind);
+  if (opts.q) p.set("q", opts.q);
+  return fetch(`${API}/api/memories?${p}`).then(j<{ memories: MemoryItem[]; stats: MemoryStats }>);
+};
+export const addMemory = (data: Partial<MemoryItem>): Promise<MemoryItem> =>
+  fetch(`${API}/api/memories`, { method: "POST", body: JSON.stringify(data) }).then(j<MemoryItem>);
+export const updateMemory = (id: string, data: Partial<MemoryItem>): Promise<MemoryItem> =>
+  fetch(`${API}/api/memories/${id}`, { method: "PUT", body: JSON.stringify(data) }).then(j<MemoryItem>);
+export const deleteMemory = (id: string): Promise<void> =>
+  fetch(`${API}/api/memories/${id}`, { method: "DELETE" }).then(j).then(() => undefined);
+
 // ── custom API integrations (Settings → Integrations) ────────────────────────
 export interface Integration {
   id: string; name: string; base_url: string;

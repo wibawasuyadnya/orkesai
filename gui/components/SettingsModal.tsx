@@ -7,10 +7,15 @@ import {
   Backend,
   EnvItem,
   Integration,
+  MemoryItem,
   Settings,
   Usage,
   addIntegration,
   addMcp,
+  addMemory,
+  deleteMemory,
+  getMemories,
+  updateMemory,
   addSkill,
   deleteDatabase,
   deleteIntegration,
@@ -31,6 +36,7 @@ const SECTIONS = [
   { id: "general", label: "General", icon: "sliders" },
   { id: "environment", label: "Environment", icon: "lock" },
   { id: "integrations", label: "Integrations", icon: "link" },
+  { id: "memory", label: "Memory", icon: "spark" },
   { id: "usage", label: "Usage", icon: "chart" },
   { id: "skills", label: "Skills", icon: "puzzle" },
   { id: "mcp", label: "MCP", icon: "plug" },
@@ -117,6 +123,8 @@ export default function SettingsModal({
             <EnvPane />
           ) : section === "integrations" ? (
             <IntegrationsPane />
+          ) : section === "memory" ? (
+            <MemoryPane agents={agents} />
           ) : section === "usage" ? (
             <UsagePane />
           ) : section === "skills" ? (
@@ -427,6 +435,100 @@ function IntegrationsPane() {
         ))}
         {items.length === 0 && <p className="dim">No integrations yet.</p>}
       </div>
+    </div>
+  );
+}
+
+
+function MemoryPane({ agents }: { agents: Agent[] }) {
+  const [items, setItems] = useState<MemoryItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [q, setQ] = useState("");
+  const [scope, setScope] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [newScope, setNewScope] = useState("global");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [err, setErr] = useState("");
+
+  const load = () =>
+    getMemories({ q, scope })
+      .then((r) => { setItems(r.memories); setTotal(r.stats.total); })
+      .catch(() => setErr("cannot reach the server"));
+  useEffect(() => { load(); }, [q, scope]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function add() {
+    if (!newBody.trim()) return;
+    setErr("");
+    try { await addMemory({ body: newBody.trim(), scope: newScope, kind: "fact" }); setNewBody(""); load(); }
+    catch (e) { setErr(e instanceof Error ? e.message : "failed"); }
+  }
+
+  return (
+    <div className="pane">
+      <h3 className="pane-title">Memory</h3>
+      <p className="setting-help">
+        The ONE shared brain — the GUI and the terminal read and write the same memories
+        (<code>.memory.db</code>). Pinned memories ride along with every message; the rest are recalled
+        when relevant. Everything here is yours: edit, pin, or delete any thought.
+      </p>
+      <div className="add-row">
+        <input placeholder="Remember something… e.g. deploys happen from the VPS, never locally" value={newBody}
+          onChange={(e) => setNewBody(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()} />
+        <select value={newScope} onChange={(e) => setNewScope(e.target.value)} style={{ maxWidth: 150 }}>
+          <option value="global">everywhere</option>
+          {agents.map((a) => <option key={a.id} value={`role:${a.id}`}>@{a.id} only</option>)}
+        </select>
+        <button className="btn primary" onClick={add}>Remember</button>
+      </div>
+      <div className="add-row" style={{ marginTop: 8 }}>
+        <input placeholder="Search memories…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <select value={scope} onChange={(e) => setScope(e.target.value)} style={{ maxWidth: 150 }}>
+          <option value="">all scopes</option>
+          <option value="global">global</option>
+          {agents.map((a) => <option key={a.id} value={`role:${a.id}`}>@{a.id}</option>)}
+        </select>
+      </div>
+      {err && <p className="form-err">{err}</p>}
+      <div className="list" style={{ marginTop: 10 }}>
+        {items.map((m) => (
+          <div className="db-item" key={m.id}>
+            <div className="list-item">
+              {editing === m.id ? (
+                <span style={{ flex: 1, display: "flex", gap: 6 }}>
+                  <input value={editBody} onChange={(e) => setEditBody(e.target.value)} autoFocus
+                    onKeyDown={async (e) => {
+                      if (e.key === "Enter" && editBody.trim()) { await updateMemory(m.id, { body: editBody.trim() }); setEditing(null); load(); }
+                      if (e.key === "Escape") setEditing(null);
+                    }} />
+                  <button className="btn" onClick={async () => { if (editBody.trim()) { await updateMemory(m.id, { body: editBody.trim() }); } setEditing(null); load(); }}>Save</button>
+                </span>
+              ) : (
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  {m.importance === "pinned" && <Icon name="spark" size={12} fill />}{" "}
+                  <span className="menu-sub">[{m.kind}]</span> {m.body}
+                  {m.scope !== "global" && <span className="menu-sub"> · {m.scope}</span>}
+                </span>
+              )}
+              <span className="db-right">
+                <button className="icon-del" title={m.importance === "pinned" ? "Unpin" : "Pin — always recalled"}
+                  onClick={async () => { await updateMemory(m.id, { importance: m.importance === "pinned" ? "normal" : "pinned" }); load(); }}>
+                  <Icon name="spark" size={14} fill={m.importance === "pinned"} />
+                </button>
+                <button className="icon-del" title="Edit" onClick={() => { setEditing(m.id); setEditBody(m.body); }}>
+                  <Icon name="edit" size={14} />
+                </button>
+                <button className="icon-del" title="Forget" onClick={async () => { await deleteMemory(m.id); load(); }}>
+                  <Icon name="trash" size={14} />
+                </button>
+              </span>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="dim">No memories{q || scope ? " match" : " yet — add one above, or enable learning and just chat"}.</p>}
+      </div>
+      <p className="setting-help" style={{ marginTop: 10 }}>{total} memories total · same brain as the terminal&apos;s <code>/mem</code>.</p>
     </div>
   );
 }
